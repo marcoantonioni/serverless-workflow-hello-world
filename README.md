@@ -166,6 +166,9 @@ ab -k -n 10000 -c 5 -T 'Content-Type:application/json' ${SRVURL}/hello
 ## Serverless Logic Web Tools
 https://start.kubesmarts.org
 
+## remove Serverless crd
+oc get crd -oname | grep 'knative.dev' | xargs oc delete
+
 # ===============================================================================================
 
 This project uses Quarkus, the Supersonic Subatomic Java Framework.
