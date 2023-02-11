@@ -60,6 +60,113 @@ curl -s -X POST -H 'Content-Type:application/json' http://localhost:8080/hello_m
 # http://localhost:8080/q/dev/
 ```
 
+## installing the Serverless Workflow plug-in for Knative CLI
+
+```shell script
+curl -LO https://github.com/kiegroup/kie-tools/releases/download/0.26.0/kn-workflow-linux-amd64-0.26.0
+chmod a+x kn-workflow-linux-amd64-0.26.0
+sudo cp ./kn-workflow-linux-amd64-0.26.0 /usr/bin/kn-workflow
+kn-workflow --help
+
+curl -LO https://storage.googleapis.com/knative-nightly/client/latest/kn-linux-amd64
+chmod a+x ./kn-linux-amd64
+sudo cp ./kn-linux-amd64 /usr/bin/kn
+kn plugin list
+kn --help
+```
+
+## building a workflow project using Knative CLI
+```shell script
+# https://kiegroup.github.io/kogito-docs/serverlessworkflow/latest/tooling/kn-plugin-workflow-overview.html
+
+kn workflow create --name my-project-hello --extension quarkus-jsonp,quarkus-smallrye-openapi
+cd my-project-hello
+
+# to avoid podman network conflict
+echo "quarkus.devservices.enabled=false" >> ././src/main/resources/application.properties
+
+# use dev.local for local tests ( --image=[registry]/[repository]/[name]:[tag] )
+# kn workflow build --image my-user/my-project:1.0.0 --image-repository other-user --image-tag 1.0.1
+kn workflow build --image dev.local/my-project-hello
+
+mvn quarkus:dev
+
+curl -s -X POST -H 'Content-Type:application/json' http://localhost:8080/hello | jq .
+```
+
+## deploy Red Hat OpenShift Serverless operator
+```shell script
+
+oc login ...
+
+cat <<EOF | oc create -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-serverless
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: serverless-operators
+  namespace: openshift-serverless
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: serverless-operator
+  namespace: openshift-serverless
+spec:
+  channel: stable
+  name: serverless-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+EOF
+
+# wait for Succeeded state
+oc get csv
+
+cat <<EOF | oc create -f -
+apiVersion: operator.knative.dev/v1beta1
+kind: KnativeServing
+metadata:
+    name: knative-serving
+    namespace: knative-serving
+---
+apiVersion: operator.knative.dev/v1beta1
+kind: KnativeEventing
+metadata:
+  name: knative-eventing
+  namespace: knative-eventing
+EOF
+
+# wait for Ready=True
+oc get knativeserving.operator.knative.dev/knative-serving -n knative-serving --template='{{range .status.conditions}}{{printf "%s=%s\n" .type .status}}{{end}}'
+
+# wait for Ready=True
+oc get knativeeventing.operator.knative.dev/knative-eventing -n knative-eventing --template='{{range .status.conditions}}{{printf "%s=%s\n" .type .status}}{{end}}'
+```
+
+## build, push, deploy the service
+```shell script
+
+kn workflow build --image quay.io/marco_antonioni/my-project-hello-sw --push
+
+oc new-project my-project-hello-sw
+
+kn workflow deploy
+
+SRVURL=$(oc get services.serving.knative.dev my-project-hello-sw -o jsonpath='{.status.url}')
+curl -s -X POST -H 'Content-Type:application/json' ${SRVURL}/hello | jq .
+
+# apache bench
+ab -k -n 10000 -c 5 -T 'Content-Type:application/json' ${SRVURL}/hello
+```
+
+## Serverless Logic Web Tools
+https://start.kubesmarts.org
+
+# ===============================================================================================
 
 This project uses Quarkus, the Supersonic Subatomic Java Framework.
 
