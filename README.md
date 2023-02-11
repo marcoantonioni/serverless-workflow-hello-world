@@ -15,6 +15,9 @@ quarkus create app \
 
 cd serverless-workflow-hello-world
 
+# add Kogito Serverless Workflow tools extension
+quarkus ext add org.kie.kogito:kogito-quarkus-serverless-workflow-devui
+
 # to avoid podman network conflict
 echo "quarkus.devservices.enabled=false" >> ././src/main/resources/application.properties
 
@@ -53,6 +56,8 @@ quarkus build
 quarkus dev
 
 curl -s -X POST -H 'Content-Type:application/json' http://localhost:8080/hello_marco | jq .
+
+# http://localhost:8080/q/dev/
 ```
 
 
