@@ -1,0 +1,26 @@
+{
+  "id": "hello_marco",
+  "version": "1.0",
+  "specVersion": "0.8",
+  "name": "Hello Marco Workflow",
+  "description": "JSON based hello Marco workflow",
+  "start": "Inject Hello Marco",
+  "states": [
+    {
+      "name": "Inject Hello Marco",
+      "type": "inject",
+      "data": {
+        "greeting": "Hello from Marco"
+      },
+      "transition": "Inject Mantra"
+    },
+    {
+      "name": "Inject Mantra",
+      "type": "inject",
+      "data": {
+        "mantra": "Just started to study Serverless Workflow!"
+      },
+      "end": true
+    }
+  ]
+}
